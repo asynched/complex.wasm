@@ -6,7 +6,7 @@ pub struct Complex {
     pub real: f64,
 }
 
-fn hypot(real: f64, imaginary: f64) -> f64 {
+fn hypotenuse(real: f64, imaginary: f64) -> f64 {
     let mut a = real.abs();
     let mut b = imaginary.abs();
 
@@ -27,13 +27,13 @@ fn hypot(real: f64, imaginary: f64) -> f64 {
 #[wasm_bindgen]
 impl Complex {
     #[wasm_bindgen(constructor)]
-    pub fn new(imaginary: f64, real: f64) -> Complex {
+    pub fn new(real: f64, imaginary: f64) -> Complex {
         Complex { imaginary, real }
     }
 
     #[wasm_bindgen]
     pub fn abs(&self) -> f64 {
-        hypot(self.real, self.imaginary)
+        hypotenuse(self.real, self.imaginary)
     }
 
     #[wasm_bindgen]
@@ -62,17 +62,94 @@ impl Complex {
         }
 
         Complex {
-            imaginary: self.imaginary * other.imaginary - self.real * other.real,
-            real: self.imaginary * other.real + self.real * other.imaginary,
+            real: self.real * other.real - self.imaginary * other.imaginary,
+            imaginary: self.real * other.imaginary + self.imaginary * other.real,
         }
+    }
+
+    #[wasm_bindgen]
+    pub fn div(&self, other: &Complex) -> Complex {
+        let (a, b) = (self.real, self.imaginary);
+        let (c, d) = (other.real, other.imaginary);
+
+        if d == 0.0 {
+            return Complex {
+                imaginary: b / c,
+                real: a / c,
+            };
+        }
+
+        if c.abs() < d.abs() {
+            let x = c / d;
+            let t = c * x + d;
+
+            return Complex {
+                imaginary: (b * x + a) / t,
+                real: (b * x - a) / t,
+            };
+        }
+
+        let x = d / c;
+        let t = d * x + c;
+
+        return Complex {
+            imaginary: (b * x - a) / t,
+            real: (b * x + a) / t,
+        };
     }
 
     #[wasm_bindgen]
     pub fn sign(&self) -> Complex {
         let abs = self.abs();
+
         Complex {
             imaginary: self.imaginary / abs,
             real: self.real / abs,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_instantiation() {
+        let c = Complex::new(1.0, 2.0);
+        assert_eq!(c.real, 1.0);
+        assert_eq!(c.imaginary, 2.0);
+    }
+
+    #[test]
+    fn test_add() {
+        let a = Complex::new(1.0, 2.0);
+        let b = Complex::new(3.0, 4.0);
+        let c = a.add(&b);
+
+        let expected = Complex::new(4.0, 6.0);
+        assert_eq!(c.real, expected.real);
+        assert_eq!(c.imaginary, expected.imaginary);
+    }
+
+    #[test]
+    fn test_sub() {
+        let a = Complex::new(1.0, 2.0);
+        let b = Complex::new(3.0, 4.0);
+        let c = a.sub(&b);
+
+        let expected = Complex::new(-2.0, -2.0);
+        assert_eq!(c.real, expected.real);
+        assert_eq!(c.imaginary, expected.imaginary);
+    }
+
+    #[test]
+    fn test_mul() {
+        let a = Complex::new(1.0, 2.0);
+        let b = Complex::new(3.0, 4.0);
+        let c = a.mul(&b);
+
+        let expected = Complex::new(-5.0, 10.0);
+        assert_eq!(c.real, expected.real);
+        assert_eq!(c.imaginary, expected.imaginary);
     }
 }
